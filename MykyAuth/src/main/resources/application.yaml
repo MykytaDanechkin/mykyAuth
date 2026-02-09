@@ -1,0 +1,19 @@
+server:
+  port: ${SERVER_PORT:9000}
+spring:
+  application:
+    name: MykyAuth
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+  datasource:
+    hikari:
+      auto-commit: true
+    username: ${DATASOURCE_USERNAME:postgres}
+    password: ${DATASOURCE_PASSWORD:postgres}
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/postgres}
+    driver-class-name: ${DATASOURCE_DRIVER:org.postgresql.Driver}
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
