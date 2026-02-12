@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AuthServer.iml" filepath="$PROJECT_DIR$/AuthServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/MykyAuth/MykyAuth.iml" filepath="$PROJECT_DIR$/MykyAuth/MykyAuth.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/MykyAuth.main.iml" filepath="$PROJECT_DIR$/.idea/modules/MykyAuth.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/MykyUser/MykyUser.iml" filepath="$PROJECT_DIR$/MykyUser/MykyUser.iml" />
     </modules>
   </component>
 </project>

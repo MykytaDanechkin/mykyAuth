@@ -1,4 +1,4 @@
-package com.mykyda.mykyauth.api;
+package com.mykyda.mykyauth.http.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,4 +18,8 @@ public class PageController {
         return "reg";
     }
 
+    @GetMapping("/")
+    public String index() {
+        return "index";
+    }
 }
