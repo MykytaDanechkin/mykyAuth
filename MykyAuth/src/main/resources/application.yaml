@@ -25,8 +25,12 @@ spring:
 
   security:
     jwt:
-      secret: ${JWT_SECRET:secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecret}
-      exp-min: ${JWT_EXP_MIN:10}
+      access-token:
+        secret: ${ACCESS_TOKEN_SECRET:secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecret}
+        exp-min: ${ACCESS_TOKEN_EXP_MIN:10}
+      refresh-token:
+        secret: ${REFRESH_TOKEN_SECRET:secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecret}
+        exp-min: ${REFRESH_TOKEN_EXP_DAYS:10}
     oauth2:
       resourceserver:
         jwt:

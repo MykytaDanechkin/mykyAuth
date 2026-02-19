@@ -1,6 +1,6 @@
 package com.mykyda.mykyauth.http.filter;
 
-import com.mykyda.mykyauth.service.JwtService;
+import com.mykyda.mykyauth.service.AccessTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final AccessTokenService accessTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -42,12 +42,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private void validate(String token) {
         try {
-            var parsedToken = jwtService.parseToken(token);
+            var parsedToken = accessTokenService.parseToken(token);
             if (parsedToken.getExpiration().before(new Date())) {
                 log.warn("Token expired");
                 return;
             }
-            var username = parsedToken.getSubject();
+            var username = parsedToken.get("username").toString();
             var roles = Stream.of(parsedToken.get("authorities"))
                     .map(String::valueOf)
                     .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)

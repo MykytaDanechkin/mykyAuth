@@ -3,6 +3,7 @@ package com.mykyda.mykyauth.http.controller;
 import com.mykyda.mykyauth.data.dto.UserCreateDTO;
 import com.mykyda.mykyauth.exception.UserExistsException;
 import com.mykyda.mykyauth.service.AuthService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,8 +23,10 @@ public class AuthController {
 
     @PostMapping("/login")
     public String login(@ModelAttribute UserCreateDTO userDTO, HttpServletResponse response) {
-        var cookie = authService.login(userDTO);
-        response.addCookie(cookie);
+        var cookies = authService.login(userDTO);
+        for (Cookie cookie : cookies) {
+            response.addCookie(cookie);
+        }
         return "redirect:/";
     }
 
@@ -35,7 +38,10 @@ public class AuthController {
 
     @GetMapping("/logout")
     public String logout(HttpServletResponse response) {
-        response.addCookie(authService.logout());
+        var cookies = authService.logout();
+        for (Cookie cookie : cookies) {
+            response.addCookie(cookie);
+        }
         SecurityContextHolder.clearContext();
         return "redirect:/login?logout";
     }

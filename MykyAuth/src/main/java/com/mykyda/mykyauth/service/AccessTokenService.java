@@ -16,23 +16,28 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class JwtService {
+public class AccessTokenService {
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String ISSUER;
 
-    @Value("${spring.security.jwt.secret}")
+    @Value("${spring.security.jwt.access-token.secret}")
     private String SECRET_KEY;
 
-    @Value("${spring.security.jwt.exp-min}")
+    @Value("${spring.security.jwt.access-token.exp-min}")
     private int TOKEN_VALIDITY_MINUTES;
 
-    public String createToken(String username, List<String> roles) {
+    public Cookie createCookie(Long id, String email, List<String> authorities) {
+        return new Cookie("accessToken", createToken(id, email, authorities));
+    }
+
+    private String createToken(Long id, String username, List<String> roles) {
         return Jwts.builder()
                 .setIssuer(ISSUER)
-                .setSubject(username)
+                .setSubject(id.toString())
                 .claim("username", username)
                 .claim("authorities", roles)
+                .claim("id", id)
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(Date.from(Instant.now().plusSeconds(60L * TOKEN_VALIDITY_MINUTES)))
                 .signWith(getSecretKey(), SignatureAlgorithm.HS512)
@@ -47,7 +52,4 @@ public class JwtService {
         return Jwts.parserBuilder().setSigningKey(getSecretKey()).build().parseClaimsJws(token).getBody();
     }
 
-    public Cookie createCookie(String email, List<String> authorities) {
-        return new Cookie("accessToken", createToken(email, authorities));
-    }
 }

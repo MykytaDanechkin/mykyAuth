@@ -18,6 +18,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,7 +33,10 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
 
-    private final JwtService jwtService;
+    private final AccessTokenService accessTokenService;
+
+    private final RefreshTokenService refreshTokenService;
+
 
     @Transactional
     public void reg(UserCreateDTO userDTO) throws UserExistsException {
@@ -47,33 +54,63 @@ public class AuthService {
     }
 
     @Transactional
-    public Cookie login(UserCreateDTO userDTO) {
+    public List<Cookie> login(UserCreateDTO userDTO) {
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken
                 .unauthenticated(userDTO.getEmail(), userDTO.getPassword());
         try {
             var authToken = authenticationManager.authenticate(authenticationRequest);
-            var authorities = authToken.getAuthorities()
-                    .stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .toList();
-            var cookie = jwtService.createCookie(authToken.getName(), authorities);
-            cookie.setSecure(false);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setAttribute("SameSite", "Lax");
+            var userId = ((User) Objects.requireNonNull(authToken.getPrincipal())).getId();
+
+            var accessCookie = createAccessCookie(authToken, userId);
+
+            var uuid = UUID.randomUUID();
+            var refreshCookie = createRefreshCookie(userId, uuid);
+
             log.info("Authentication Successful with username {}", userDTO.getEmail());
-            return cookie;
+            return List.of(accessCookie, refreshCookie);
         } catch (AuthenticationException e) {
             throw new AuthFailException("Incorrect credentials");
         }
     }
 
-    public Cookie logout() {
-        Cookie cookie = new Cookie("accessToken", null);
-        cookie.setHttpOnly(true);
+    private Cookie createAccessCookie(Authentication authToken, Long userId) {
+
+        var authorities = authToken.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        var cookie = accessTokenService.createCookie(userId, authToken.getName(), authorities);
         cookie.setSecure(false);
+        cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "Lax");
         return cookie;
+    }
+
+    private Cookie createRefreshCookie(Long userId, UUID uuid) {
+        var token = refreshTokenService.createToken(userId, uuid);
+        refreshTokenService.saveToken(uuid, userId, token);
+        var cookie = refreshTokenService.createCookie(token);
+        cookie.setSecure(false);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setAttribute("SameSite", "Lax");
+        return cookie;
+    }
+
+    public List<Cookie> logout() {
+        Cookie accessCookie = new Cookie("accessToken", null);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(false);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(0);
+
+        Cookie refreshCookie = new Cookie("refreshToken", null);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(false);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(0);
+        return List.of(accessCookie, refreshCookie);
     }
 }
