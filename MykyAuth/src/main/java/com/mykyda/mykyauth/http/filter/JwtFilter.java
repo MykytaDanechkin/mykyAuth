@@ -1,6 +1,7 @@
 package com.mykyda.mykyauth.http.filter;
 
 import com.mykyda.mykyauth.service.AccessTokenService;
+import com.mykyda.mykyauth.service.RefreshTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -8,14 +9,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -23,43 +20,38 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final AccessTokenService accessTokenService;
 
+    private final RefreshTokenService refreshTokenService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        SecurityContextHolder.clearContext();
         var cookies = request.getCookies();
         if (cookies != null) {
+            String access = null;
+            String refresh = null;
+
+
             for (Cookie cookie : cookies) {
                 if ("accessToken".equals(cookie.getName())) {
-                    validate(cookie.getValue());
-                    break;
+                    access = cookie.getValue();
+                }
+                if ("refreshToken".equals(cookie.getName())) {
+                    refresh = cookie.getValue();
+                }
+            }
+
+            if (access != null && accessTokenService.validate(access)) {
+                log.debug("successful validate access token");
+            } else if (refresh != null) {
+                List<Cookie> newCookies = refreshTokenService.refresh(refresh);
+                if (!newCookies.isEmpty()) {
+                    for (Cookie cookie : newCookies) {
+                        response.addCookie(cookie);
+                    }
                 }
             }
         }
         filterChain.doFilter(request, response);
-    }
-
-    private void validate(String token) {
-        try {
-            var parsedToken = accessTokenService.parseToken(token);
-            if (parsedToken.getExpiration().before(new Date())) {
-                log.warn("Token expired");
-                return;
-            }
-            var username = parsedToken.get("username").toString();
-            var roles = Stream.of(parsedToken.get("authorities"))
-                    .map(String::valueOf)
-                    .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)
-                    .collect(Collectors.toSet());
-            var auth = new UsernamePasswordAuthenticationToken(
-                    username,
-                    null,
-                    roles
-            );
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } catch (Exception e) {
-            log.warn("Invalid token{}", e.getMessage());
-        }
     }
 }

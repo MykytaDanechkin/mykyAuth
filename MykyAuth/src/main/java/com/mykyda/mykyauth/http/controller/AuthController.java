@@ -3,7 +3,9 @@ package com.mykyda.mykyauth.http.controller;
 import com.mykyda.mykyauth.data.dto.UserCreateDTO;
 import com.mykyda.mykyauth.exception.UserExistsException;
 import com.mykyda.mykyauth.service.AuthService;
+import com.mykyda.mykyauth.service.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class AuthController {
 
     private final AuthService authService;
+
+    private final RefreshTokenService refreshTokenService;
 
 
     @PostMapping("/login")
@@ -37,7 +41,10 @@ public class AuthController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpServletResponse response) {
+    public String logout(HttpServletRequest request, HttpServletResponse response) {
+        if (request.getCookies() != null) {
+            refreshTokenService.revokeByToken(request.getCookies());
+        }
         var cookies = authService.logout();
         for (Cookie cookie : cookies) {
             response.addCookie(cookie);

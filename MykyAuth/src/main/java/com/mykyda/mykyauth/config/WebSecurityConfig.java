@@ -2,6 +2,7 @@ package com.mykyda.mykyauth.config;
 
 import com.mykyda.mykyauth.http.filter.JwtFilter;
 import com.mykyda.mykyauth.service.AccessTokenService;
+import com.mykyda.mykyauth.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +33,7 @@ class WebSecurityConfig {
     SecurityFilterChain apiSecurityFilterChain(HttpSecurity http,
                                                JwtFilter jwtFilter) {
         http
-                .securityMatcher("/api/**","/")
+                .securityMatcher("/api/**", "/")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated()
@@ -78,8 +79,8 @@ class WebSecurityConfig {
     }
 
     @Bean
-    public JwtFilter jwtFilter(AccessTokenService accessTokenService) {
-        return new JwtFilter(accessTokenService);
+    public JwtFilter jwtFilter(AccessTokenService accessTokenService, RefreshTokenService refreshTokenService) {
+        return new JwtFilter(accessTokenService, refreshTokenService);
     }
 
 }

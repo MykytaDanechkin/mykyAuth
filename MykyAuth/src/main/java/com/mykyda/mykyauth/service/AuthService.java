@@ -6,6 +6,7 @@ import com.mykyda.mykyauth.data.entity.User;
 import com.mykyda.mykyauth.data.repository.UserRepository;
 import com.mykyda.mykyauth.exception.AuthFailException;
 import com.mykyda.mykyauth.exception.UserExistsException;
+import com.mykyda.mykyauth.util.EmptyCookiesUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -64,6 +64,7 @@ public class AuthService {
             var accessCookie = createAccessCookie(authToken, userId);
 
             var uuid = UUID.randomUUID();
+            refreshTokenService.revokeAllByUserId(userId);
             var refreshCookie = createRefreshCookie(userId, uuid);
 
             log.info("Authentication Successful with username {}", userDTO.getEmail());
@@ -74,43 +75,16 @@ public class AuthService {
     }
 
     private Cookie createAccessCookie(Authentication authToken, Long userId) {
-
-        var authorities = authToken.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
-
-        var cookie = accessTokenService.createCookie(userId, authToken.getName(), authorities);
-        cookie.setSecure(false);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setAttribute("SameSite", "Lax");
-        return cookie;
+        return accessTokenService.createCookie(userId, authToken.getName(), authToken.getAuthorities());
     }
 
     private Cookie createRefreshCookie(Long userId, UUID uuid) {
         var token = refreshTokenService.createToken(userId, uuid);
         refreshTokenService.saveToken(uuid, userId, token);
-        var cookie = refreshTokenService.createCookie(token);
-        cookie.setSecure(false);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setAttribute("SameSite", "Lax");
-        return cookie;
+        return refreshTokenService.createCookie(token);
     }
 
     public List<Cookie> logout() {
-        Cookie accessCookie = new Cookie("accessToken", null);
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(false);
-        accessCookie.setPath("/");
-        accessCookie.setMaxAge(0);
-
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(false);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0);
-        return List.of(accessCookie, refreshCookie);
+        return EmptyCookiesUtil.getEmptyCookies();
     }
 }
