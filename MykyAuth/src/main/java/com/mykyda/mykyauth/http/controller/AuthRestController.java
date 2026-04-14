@@ -11,51 +11,47 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
-@Controller
+@RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         prefix = "app.feature.rest",
         name = "enabled",
-        havingValue = "false"
+        havingValue = "true"
 )
-public class AuthController {
+public class AuthRestController {
 
     private final AuthService authService;
 
     private final RefreshTokenService refreshTokenService;
 
-
     @PostConstruct
     public void postConstruct() {
-        log.info("MVC controller was loaded");
+        log.info("REST controller was loaded");
     }
 
     @PostMapping("/login")
-    public String login(@ModelAttribute UserCreateDTO userDTO, HttpServletResponse response) {
+    public ResponseEntity<String> login(@RequestBody UserCreateDTO userDTO, HttpServletResponse response) {
         var cookies = authService.login(userDTO);
         for (Cookie cookie : cookies) {
             response.addCookie(cookie);
         }
-        return "redirect:/";
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/reg")
-    public String reg(@ModelAttribute UserCreateDTO userDTO) throws UserExistsException {
+    public ResponseEntity<String>  reg(@RequestBody UserCreateDTO userDTO) throws UserExistsException {
         authService.reg(userDTO);
-        return "redirect:/login";
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/logout")
-    public String logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
         if (request.getCookies() != null) {
             refreshTokenService.revokeByToken(request.getCookies());
         }
@@ -64,6 +60,11 @@ public class AuthController {
             response.addCookie(cookie);
         }
         SecurityContextHolder.clearContext();
-        return "redirect:/login?logout";
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/checkrest")
+    public String checkrest(){
+        return "nima mvc";
     }
 }

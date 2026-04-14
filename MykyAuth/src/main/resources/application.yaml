@@ -46,3 +46,8 @@ spring:
 
   config:
     import: optional:file:.env[.properties]
+
+app:
+  feature:
+    rest:
+      enabled: ${ENABLE_REST:false}
