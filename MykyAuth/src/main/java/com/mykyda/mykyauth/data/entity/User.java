@@ -27,11 +27,15 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
     @Enumerated(EnumType.STRING)
     private Role authority;
+
+    @Getter
+    @Enumerated(EnumType.STRING)
+    private RegistrationType registrationType;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -47,4 +51,5 @@ public class User implements UserDetails {
     public String getUsername() {
         return email;
     }
+
 }

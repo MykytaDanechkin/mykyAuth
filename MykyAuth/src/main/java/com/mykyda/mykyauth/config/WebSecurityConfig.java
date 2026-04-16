@@ -1,5 +1,6 @@
 package com.mykyda.mykyauth.config;
 
+import com.mykyda.mykyauth.handler.OauthSuccessHandler;
 import com.mykyda.mykyauth.http.filter.JwtFilter;
 import com.mykyda.mykyauth.service.AccessTokenService;
 import com.mykyda.mykyauth.service.RefreshTokenService;
@@ -7,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -33,41 +33,35 @@ class WebSecurityConfig {
 
     private final UserDetailsService userService;
 
+    private final OauthSuccessHandler successHandler;
+
     @Value("${spring.security.cors.allowed_origins}")
     private String ALLOWED_ORIGINS;
 
 
     @Bean
-    @Order(1)
-    SecurityFilterChain apiSecurityFilterChain(HttpSecurity http,
-                                               JwtFilter jwtFilter) {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter) {
         http
-                .securityMatcher("/api/**", "/")
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated()
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-        return http.build();
-    }
-
-
-    @Bean
-    @Order(2)
-    SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/reg",
+                                "/auth/reg",
+                                "/auth/login",
                                 "/login",
+                                "/reg",
                                 "/auth/**",
+                                "/oauth2/**",
+                                "/login/oauth2/**",
                                 "/favicon.ico"
                         ).permitAll()
-                        .anyRequest().permitAll()
-                );
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth -> oauth
+                        .loginPage("/login")
+                        .successHandler(successHandler))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -99,6 +93,7 @@ class WebSecurityConfig {
         config.setAllowedOrigins(List.of(ALLOWED_ORIGINS.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Set-Cookie"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

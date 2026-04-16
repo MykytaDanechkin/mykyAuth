@@ -26,6 +26,13 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+
+        if (request.getRequestURI().startsWith("/oauth2/")
+                || request.getRequestURI().startsWith("/login/oauth2/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         var cookies = request.getCookies();
         if (cookies != null) {
             String access = null;

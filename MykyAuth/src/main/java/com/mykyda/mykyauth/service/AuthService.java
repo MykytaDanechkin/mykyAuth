@@ -1,10 +1,12 @@
 package com.mykyda.mykyauth.service;
 
 import com.mykyda.mykyauth.data.dto.UserCreateDTO;
+import com.mykyda.mykyauth.data.entity.RegistrationType;
 import com.mykyda.mykyauth.data.entity.Role;
 import com.mykyda.mykyauth.data.entity.User;
 import com.mykyda.mykyauth.data.repository.UserRepository;
 import com.mykyda.mykyauth.exception.AuthFailException;
+import com.mykyda.mykyauth.exception.NullPasswordException;
 import com.mykyda.mykyauth.exception.UserExistsException;
 import com.mykyda.mykyauth.util.EmptyCookiesUtil;
 import jakarta.servlet.http.Cookie;
@@ -42,14 +44,17 @@ public class AuthService {
     public void reg(UserCreateDTO userDTO) throws UserExistsException {
         var user = userRepository.findByEmail(userDTO.getEmail());
         if (user.isPresent()) {
-            throw new UserExistsException("User Already Exist, register in AuthService");
+            throw new UserExistsException("User Already Exists, register in AuthService");
         } else {
+            var password = passwordEncoder.encode(userDTO.getPassword());
+            if (password == null) throw new NullPasswordException("Password can`t be null");
             userRepository.save(User.builder()
                     .email(userDTO.getEmail())
-                    .password(passwordEncoder.encode(userDTO.getPassword()))
+                    .password(password)
                     .authority(Role.USER)
+                    .registrationType(RegistrationType.DEFAULT)
                     .build());
-            log.info("User {} has been registered", userDTO.getEmail());
+            log.info("User {} have been registered", userDTO.getEmail());
         }
     }
 
@@ -57,6 +62,7 @@ public class AuthService {
     public List<Cookie> login(UserCreateDTO userDTO) {
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken
                 .unauthenticated(userDTO.getEmail(), userDTO.getPassword());
+        if (userDTO.getPassword() == null) throw new NullPasswordException("Password can`t be null");
         try {
             var authToken = authenticationManager.authenticate(authenticationRequest);
             var userId = ((User) Objects.requireNonNull(authToken.getPrincipal())).getId();
